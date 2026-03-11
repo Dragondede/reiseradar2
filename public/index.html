@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ReiseRadar">
+<meta name="theme-color" content="#0a0a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ReiseRadar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#f0a500;--orange:#ff6b35;--green:#2ecc71;--purple:#9b59b6;--blue:#3498db;--red:#e74c3c;--teal:#1abc9c;--cruise:#0077b6;--nile:#c9a227;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px)}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh;background:linear-gradient(160deg,#0a0a1a 0%,#0f1729 40%,#0a0a1a 100%);font-family:'DM Sans',sans-serif;color:#f0f0f0;overflow-x:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body::before{content:'';position:fixed;top:-200px;right:-200px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(240,165,0,0.05) 0%,transparent 70%);pointer-events:none;z-index:0}
+.container{max-width:600px;margin:0 auto;padding:16px 12px;padding-top:calc(16px + var(--safe-top));padding-bottom:calc(20px + var(--safe-bot));position:relative;z-index:1}
+.header{text-align:center;margin-bottom:16px}
+.header-icon{font-size:40px;margin-bottom:4px;animation:float 3s ease-in-out infinite}
+.header h1{font-family:'Playfair Display',serif;font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--orange),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2}
+.header p{color:#777;font-size:11px;margin-top:2px}
+.badges{display:flex;justify-content:center;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+.badge{padding:3px 8px;font-size:9px;font-weight:500;background:rgba(255,255,255,0.03);border-radius:14px;white-space:nowrap}
+.b-gold{color:var(--gold);border:1px solid rgba(240,165,0,0.15)}
+.b-teal{color:var(--teal);border:1px solid rgba(26,188,156,0.15)}
+.b-purp{color:var(--purple);border:1px solid rgba(155,89,182,0.15)}
+.b-cruise{color:var(--cruise);border:1px solid rgba(0,119,182,0.15)}
+.b-nile{color:var(--nile);border:1px solid rgba(201,162,39,0.15)}
+.card{background:linear-gradient(135deg,rgba(26,26,46,0.92),rgba(22,33,62,0.92));border:1px solid rgba(240,165,0,0.12);border-radius:18px;padding:18px 14px;box-shadow:0 12px 40px rgba(0,0,0,0.3)}
+.divider{height:1px;background:rgba(255,255,255,0.05);margin:14px 0}
+.type-row{display:flex;gap:5px;margin-bottom:14px}
+.type-btn{flex:1;padding:12px 4px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:400;transition:all .2s;font-family:inherit;border:1.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);color:#777;-webkit-tap-highlight-color:transparent}
+.type-btn.active{border-color:var(--gold);background:rgba(240,165,0,0.1);color:var(--gold);font-weight:700}
+.lbl{font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:block}
+.fi{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(240,165,0,0.2);background:rgba(255,255,255,0.04);color:#f0f0f0;font-size:16px;outline:none;transition:all .2s;font-family:inherit;color-scheme:dark;-webkit-appearance:none;appearance:none}
+.fi:focus{border-color:rgba(240,165,0,0.5);box-shadow:0 0 0 3px rgba(240,165,0,0.08)}
+select.fi{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23f0a500' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+option{background:#1a1a2e;color:#f0f0f0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(min-width:480px){.g4{grid-template-columns:1fr 1fr 1fr 1fr}}
+.ap-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.ap{display:flex;align-items:center;gap:5px;padding:8px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);color:#777;cursor:pointer;font-size:12px;font-weight:500;transition:all .2s;user-select:none;-webkit-tap-highlight-color:transparent}
+.ap.on{border-color:var(--gold);background:rgba(240,165,0,0.1);color:var(--gold)}
+.ap .ck{width:16px;height:16px;border-radius:4px;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ap.on .ck{background:var(--gold);color:#000}
+.btn-main{width:100%;padding:16px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),var(--orange));color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(240,165,0,0.25);transition:all .2s;-webkit-tap-highlight-color:transparent}
+.btn-main:active{transform:scale(0.98)}.btn-main:disabled{background:rgba(240,165,0,0.25);box-shadow:none;cursor:wait}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.btn-s{padding:14px 8px;border-radius:12px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;text-align:center;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.btn-s:active{transform:scale(0.97)}.btn-s:disabled{opacity:.35;cursor:wait}
+.bs-teal{border:1.5px solid rgba(26,188,156,0.35);background:rgba(26,188,156,0.05);color:var(--teal)}
+.bs-blue{border:1.5px solid rgba(52,152,219,0.35);background:rgba(52,152,219,0.05);color:var(--blue)}
+.bs-green{border:1.5px solid rgba(46,204,113,0.35);background:rgba(46,204,113,0.05);color:var(--green)}
+.bs-purp{border:1.5px solid rgba(155,89,182,0.35);background:rgba(155,89,182,0.05);color:var(--purple)}
+.bs-cruise{border:1.5px solid rgba(0,119,182,0.35);background:rgba(0,119,182,0.05);color:var(--cruise)}
+.bs-nile{border:1.5px solid rgba(201,162,39,0.35);background:rgba(201,162,39,0.05);color:var(--nile)}
+.err{margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.25);color:var(--red);font-size:13px}
+.prog{margin-top:16px;border-radius:14px;padding:16px;background:linear-gradient(135deg,rgba(26,26,46,0.92),rgba(22,33,62,0.92));border:1px solid rgba(240,165,0,0.12);animation:fadeIn .3s}
+.prog h3{margin:0 0 10px;font-size:13px;color:var(--gold)}
+.ph{display:flex;align-items:center;gap:9px;margin-bottom:8px;transition:all .4s}
+.ph.done{opacity:.45}.ph.wait{opacity:.25}
+.pd{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.pd.dn{background:var(--green)}.pd.ac{background:var(--gold);animation:pulse 1.5s ease-in-out infinite}.pd.wt{background:#333}
+.pt{font-size:12px;color:#ddd}.pt.ac{font-weight:700}
+.dots{display:inline-flex;gap:3px;align-items:center;margin-left:6px}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:bounce 1.2s ease-in-out infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+.tabs{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 14px;border-radius:10px;cursor:pointer;font-size:12px;font-family:inherit;white-space:nowrap;border:1.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);color:#777;font-weight:400;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.tab.on{border-color:var(--gold);background:rgba(240,165,0,0.1);color:var(--gold);font-weight:700}
+.res-card{background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(240,165,0,0.12);border-radius:14px;padding:16px;overflow-x:auto;animation:fadeIn .4s}
+.res-title{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:12px}
+.res-text{white-space:pre-wrap;color:#ddd;font-size:14px;line-height:1.85;word-wrap:break-word}
+.ptbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;border-radius:10px;overflow:hidden;border:1px solid rgba(240,165,0,0.1)}
+.ptbl thead th{background:rgba(240,165,0,0.08);color:var(--gold);padding:10px 7px;font-weight:700;text-align:center;font-size:10px;text-transform:uppercase;border-bottom:1px solid rgba(240,165,0,0.12);position:sticky;top:0;white-space:nowrap}
+.ptbl thead th:first-child{text-align:left;min-width:55px}
+.ptbl td{padding:10px 7px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px}
+.ptbl td:first-child{text-align:left;font-weight:600;color:#ccc;white-space:nowrap}
+.p-best{background:rgba(46,204,113,0.12)!important;color:#2ecc71;font-weight:800;border-radius:4px}
+.p-lo{color:#2ecc71;font-weight:700}.p-mid{color:#f39c12;font-weight:600}.p-hi{color:#e74c3c;font-weight:500}
+.legend{display:flex;gap:12px;margin-top:10px;font-size:10px;color:#888;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:4px}
+.ldot{width:9px;height:9px;border-radius:2px}
+.footer{text-align:center;margin-top:28px}
+.footer p{color:#444;font-size:10px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(240,165,0,0.35)}50%{box-shadow:0 0 0 7px rgba(240,165,0,0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">🌍</div>
+    <h1>ReiseRadar</h1>
+    <p>Flüge · Hotels · Kreuzfahrten · Nilkreuzfahrten</p>
+  </div>
+  <div class="badges">
+    <span class="badge b-gold">✈️ Flüge</span>
+    <span class="badge b-teal">📊 Tabelle</span>
+    <span class="badge b-purp">🏨 Hotels</span>
+    <span class="badge b-cruise">🚢 Kreuzfahrt</span>
+    <span class="badge b-nile">🏛️ Nil</span>
+  </div>
+  <div class="card">
+    <div class="type-row">
+      <button class="type-btn active" onclick="setType(this,'flight')">✈️ Nur Flug</button>
+      <button class="type-btn" onclick="setType(this,'package')">🏖️ Pauschal</button>
+      <button class="type-btn" onclick="setType(this,'both')">🔍 Beides</button>
+    </div>
+    <label class="lbl">Abflughäfen</label>
+    <div class="ap-grid" id="apGrid"></div>
+    <div class="g2">
+      <div><label class="lbl">Reiseziel *</label><input class="fi" id="dest" placeholder="z.B. Türkei, Mallorca…"></div>
+      <div><label class="lbl">Region</label><input class="fi" id="region" placeholder="z.B. Antalya, Palma…"></div>
+    </div>
+    <div class="g2">
+      <div><label class="lbl">Hinflug</label><input type="date" class="fi" id="dep"></div>
+      <div><label class="lbl">Rückflug</label><input type="date" class="fi" id="ret"></div>
+    </div>
+    <div class="g4">
+      <div><label class="lbl">Reisende</label><select class="fi" id="trav"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
+      <div><label class="lbl">Budget €/P.</label><input type="number" class="fi" id="budget" placeholder="500" inputmode="numeric"></div>
+      <div><label class="lbl">Flexibel</label><select class="fi" id="flex"><option value="exact">Exakt</option><option value="3days">±3T</option><option value="7days" selected>±7T</option></select></div>
+      <div><label class="lbl">Sterne</label><select class="fi" id="stars"><option value="3">⭐3</option><option value="4" selected>⭐4</option><option value="5">⭐5</option></select></div>
+    </div>
+    <button class="btn-main" id="btnSearch" onclick="doSearch()">🚀 Günstigste Angebote finden</button>
+    <div class="btn-row">
+      <button class="btn-s bs-teal" id="btnTable" onclick="doTable()">📊 Jahres-Tabelle</button>
+      <button class="btn-s bs-blue" id="btnCheap" onclick="doCheap()">💰 Günstigster Monat</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-s bs-green" id="btnTime" onclick="doTime()">🗓️ Beste Reisezeit</button>
+      <button class="btn-s bs-purp" id="btnHotel" onclick="doHotel()">🏨 Hotel-Trends</button>
+    </div>
+    <div class="divider"></div>
+    <label class="lbl" style="font-size:11px;margin-bottom:10px">🚢 Kreuzfahrten</label>
+    <div class="g4">
+      <div><label class="lbl">Dauer</label><select class="fi" id="crDur"><option value="any">Egal</option><option value="3-5">3-5N</option><option value="7" selected>7N</option><option value="10-14">10-14N</option><option value="14+">14+N</option></select></div>
+      <div><label class="lbl">Kabine</label><select class="fi" id="crCab"><option value="innen">Innen</option><option value="aussen" selected>Außen</option><option value="balkon">Balkon</option><option value="suite">Suite</option></select></div>
+      <div><label class="lbl">Reederei</label><select class="fi" id="crLine"><option value="any">Alle</option><option value="AIDA">AIDA</option><option value="MSC">MSC</option><option value="Costa">Costa</option><option value="TUI">TUI</option><option value="Royal Caribbean">Royal C.</option></select></div>
+      <div><label class="lbl">Verpflegung</label><select class="fi" id="crBoard"><option value="any">Egal</option><option value="all-inclusive" selected>All-Incl.</option><option value="vollpension">Vollp.</option></select></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-s bs-cruise" id="btnCruise" onclick="doCruise()">🚢 Kreuzfahrt finden</button>
+      <button class="btn-s bs-nile" id="btnNile" onclick="doNile()">🏛️ Nilkreuzfahrt</button>
+    </div>
+    <div id="errBox" class="err" style="display:none"></div>
+  </div>
+  <div id="progArea"></div>
+  <div id="resArea" style="margin-top:16px"></div>
+  <div class="footer"><p>ReiseRadar — KI-gestützte Reisesuche mit Claude AI</p></div>
+</div>
+<script>
+var AP=[{c:'DUS',n:'Düsseldorf',d:1},{c:'CGN',n:'Köln/Bonn',d:1},{c:'FRA',n:'Frankfurt',d:1},{c:'DTM',n:'Dortmund',d:0},{c:'AMS',n:'Amsterdam',d:1},{c:'BRU',n:'Brüssel',d:1},{c:'CRL',n:'Charleroi',d:0},{c:'EIN',n:'Eindhoven',d:0}];
+var LBL={search:'🔎 Angebote',table:'📊 Preistabelle',cheap:'💰 Günstigster Zeitraum',time:'🗓️ Beste Reisezeit',hotel:'🏨 Hotels',cruise:'🚢 Kreuzfahrten',nile:'🏛️ Nilkreuzfahrt'};
+var PHS={search:['Durchsuche Portale…','Vergleiche Preise…','Erstelle Ranking…'],table:['Recherchiere Preise…','Vergleiche Flughäfen…','Erstelle Tabelle…'],cheap:['Analysiere Preise…','Vergleiche Monate…','Erstelle Empfehlung…'],time:['Recherchiere Klima…','Prüfe Saisons…','Erstelle Empfehlung…'],hotel:['Durchsuche Portale…','Analysiere Bewertungen…','Erstelle Ranking…'],cruise:['Suche Kreuzfahrten…','Vergleiche Routen…','Analysiere Bewertungen…'],nile:['Suche Nilkreuzfahrten…','Vergleiche Schiffe…','Analysiere Preise…']};
+var BTNS=['btnSearch','btnTable','btnCheap','btnTime','btnHotel','btnCruise','btnNile'];
+var type='flight',store={},tab='',phIv=null;
+
+var grid=document.getElementById('apGrid');
+AP.forEach(function(a){var d=document.createElement('div');d.className='ap'+(a.d?' on':'');d.dataset.c=a.c;d.innerHTML='<span class="ck">'+(a.d?'✓':'')+'</span>'+a.n;d.onclick=function(){d.classList.toggle('on');d.querySelector('.ck').textContent=d.classList.contains('on')?'✓':''};grid.appendChild(d)});
+
+function setType(b,t){document.querySelectorAll('.type-btn').forEach(function(x){x.classList.remove('active')});b.classList.add('active');type=t}
+function getAP(){var r=[];document.querySelectorAll('.ap.on').forEach(function(d){r.push({c:d.dataset.c,n:d.textContent.replace('✓','').trim()})});return r}
+function g(id){return document.getElementById(id).value.trim()}
+function err(m){var e=document.getElementById('errBox');e.style.display='block';e.textContent=m;setTimeout(function(){e.style.display='none'},6000)}
+function lock(s){BTNS.forEach(function(id){document.getElementById(id).disabled=s})}
+
+function showProg(key){
+  var ps=PHS[key]||[];
+  document.getElementById('progArea').innerHTML='<div class="prog"><h3>'+LBL[key]+' — '+(g('dest')||'Suche')+'…</h3><div>'+ps.map(function(p,i){return'<div class="ph '+(i?'wait':'')+'" id="p'+i+'"><div class="pd '+(i?'wt':'ac')+'">'+(i+1)+'</div><span class="pt '+(i?'':'ac')+'">'+p+(i?'':'<span class="dots"><span></span><span></span><span></span></span>')+'</span></div>'}).join('')+'</div></div>';
+  var c=0;phIv=setInterval(function(){c++;if(c>=ps.length)return;for(var i=0;i<ps.length;i++){var el=document.getElementById('p'+i);if(!el)continue;var d=el.querySelector('.pd'),t=el.querySelector('.pt');if(i<c){el.className='ph done';d.className='pd dn';d.textContent='✓';t.className='pt';t.textContent=ps[i]}else if(i===c){el.className='ph';d.className='pd ac';d.textContent=i+1;t.className='pt ac';t.innerHTML=ps[i]+'<span class="dots"><span></span><span></span><span></span></span>'}}},4500);
+}
+function hideProg(){clearInterval(phIv);document.getElementById('progArea').innerHTML=''}
+
+function render(){
+  var a=document.getElementById('resArea'),keys=Object.keys(store);if(!keys.length){a.innerHTML='';return}
+  if(!tab||!store[tab])tab=keys[keys.length-1];
+  var h='<div style="animation:fadeIn .4s"><div class="tabs">';
+  keys.forEach(function(k){h+='<button class="tab '+(tab===k?'on':'')+'" onclick="tab=\''+k+'\';render()">'+LBL[k]+'</button>'});
+  h+='</div><h2 class="res-title" style="color:var(--gold)">'+LBL[tab]+' — '+(g('dest')||'')+'</h2><div class="res-card">';
+  if(tab==='table')h+=buildTbl(store.table);else h+='<div class="res-text">'+fmt(store[tab])+'</div>';
+  h+='</div></div>';a.innerHTML=h;a.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function fmt(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" style="color:var(--gold);word-break:break-all">$1</a>')}
+
+function buildTbl(raw){
+  var td='',sum='',ts=raw.indexOf('TABELLE_START'),te=raw.indexOf('TABELLE_ENDE');
+  if(ts>-1&&te>-1){td=raw.substring(ts+13,te).trim();sum=raw.substring(te+12).trim()}
+  else{var pl=raw.split('\n').filter(function(l){return l.indexOf('|')>-1&&l.length>5});if(pl.length>1){td=pl.join('\n');sum=raw.substring(raw.lastIndexOf(pl[pl.length-1])+pl[pl.length-1].length).trim()}else return'<div class="res-text">'+fmt(raw)+'</div>'}
+  var rows=td.split('\n').map(function(r){return r.trim()}).filter(function(r){return r.indexOf('|')>-1});
+  if(rows.length<2)return'<div class="res-text">'+fmt(raw)+'</div>';
+  var hd=rows[0].split('|').map(function(c){return c.trim()});var all=[];
+  var dr=rows.slice(1).map(function(r){var c=r.split('|').map(function(x){return x.trim()});c.forEach(function(x,j){if(j>0&&j<c.length-1){var p=pp(x);if(p>0)all.push(p)}});return c});
+  all.sort(function(a,b){return a-b});var lo=all.length?all[Math.floor(all.length*.33)]:0,mid=all.length?all[Math.floor(all.length*.66)]:0,best=all.length?all[0]:0;
+  var h='<div style="overflow-x:auto"><table class="ptbl"><thead><tr>';
+  hd.forEach(function(c){h+='<th>'+esc(c)+'</th>'});h+='</tr></thead><tbody>';
+  dr.forEach(function(cells){h+='<tr>';cells.forEach(function(c,j){if(j===0)h+='<td>'+esc(c)+'</td>';else if(j===cells.length-1)h+='<td style="font-size:10px">'+esc(c)+'</td>';else{var p=pp(c);var cl='';if(p>0){if(p<=best*1.05)cl='p-best';else if(p<=lo)cl='p-lo';else if(p<=mid)cl='p-mid';else cl='p-hi'}h+='<td class="'+cl+'">'+esc(c.replace('>>>','▶').replace('***','★'))+'</td>'}});h+='</tr>'});
+  h+='</tbody></table></div><div class="legend"><span><span class="ldot" style="background:#2ecc71"></span>Günstig</span><span><span class="ldot" style="background:#f39c12"></span>Mittel</span><span><span class="ldot" style="background:#e74c3c"></span>Teuer</span></div>';
+  if(sum)h+='<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05)"><div class="res-text">'+fmt(sum)+'</div></div>';
+  return h;
+}
+function pp(s){var m=s.replace(/[^\d]/g,'');return m?parseInt(m):0}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function ai(prompt){
+  return fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})})
+  .then(function(r){return r.text()})
+  .then(function(txt){
+    var d;try{d=JSON.parse(txt)}catch(e){throw new Error('Server-Antwort ungültig.')}
+    if(d.error)throw new Error(d.error);
+    return d.text||'Keine Ergebnisse.';
+  });
+}
+
+function run(key,prompt,btnId,label){
+  if(!g('dest')&&key!=='nile'){err('Bitte Reiseziel eingeben.');return}
+  if(key==='search'&&!g('dep')){err('Bitte Hinflugdatum eingeben.');return}
+  if(key==='table'&&!getAP().length){err('Bitte Flughafen wählen.');return}
+  lock(true);document.getElementById(btnId).textContent='⏳ Läuft…';showProg(key);
+  ai(prompt).then(function(t){store[key]=t;tab=key}).catch(function(e){err(e.message)}).finally(function(){hideProg();lock(false);document.getElementById(btnId).textContent=label;render()});
+}
+
+function apStr(){return getAP().map(function(a){return a.n+' ('+a.c+')'}).join(', ')||'Deutschland'}
+function tLbl(){return type==='flight'?'Nur Flüge':type==='package'?'Pauschalreisen':'Flüge+Pauschal'}
+
+function doSearch(){run('search','Reiseexperte: Günstigste Angebote nach '+g('dest')+(g('region')?', '+g('region'):'')+'. ABFLUGHÄFEN: '+apStr()+'. HINFLUG: '+g('dep')+', RÜCKFLUG: '+(g('ret')||'offen')+', REISENDE: '+g('trav')+', TYP: '+tLbl()+'. '+(g('budget')?'BUDGET: '+g('budget')+'€/P. ':'')+(type!=='flight'?'MIN STERNE: '+g('stars')+'. ':'')+'Suche Skyscanner, Google Flights, Kayak, Check24, HolidayCheck. Auf Deutsch: ✈️ FLUGHAFEN-VERGLEICH, 🏆 TOP ANGEBOTE, 💡 SPAR-TIPPS','btnSearch','🚀 Günstigste Angebote finden')}
+
+function doTable(){var heads=getAP().map(function(a){return a.n+' ('+a.c+')'});
+run('table','Preistabelle für '+g('dest')+'. ABFLUGHÄFEN: '+heads.join(', ')+'. TYP: '+(type==='flight'?'Flug':'Pauschal')+', REISENDE: '+g('trav')+'. Antworte EXAKT:\nTABELLE_START\nMonat|'+heads.join('|')+'|Bewertung\nJan|'+heads.map(function(){return'XXX€'}).join('|')+'|🟢/🟡/🔴\nFeb|...|...\nMär|...\nApr|...\nMai|...\nJun|...\nJul|...\nAug|...\nSep|...\nOkt|...\nNov|...\nDez|...\nTABELLE_ENDE\nPreise PRO PERSON €. Günstigsten mit >>> markieren.\nDanach: 🏆 Günstigster, 🥈 Zweit, ⚠️ Teuerster, 💡 Spartipp','btnTable','📊 Jahres-Tabelle')}
+
+function doCheap(){run('cheap','Wann am günstigsten nach '+g('dest')+'? Ab: '+apStr()+'. '+g('trav')+' Pers.'+(g('budget')?', Budget:'+g('budget')+'€':'')+'. 1.Preis/Monat(🟢/🟡/🔴) 2.Flughafen-Vergleich 3.Wochentage 4.Buchungszeit 5.✅Kombi','btnCheap','💰 Günstigster Monat')}
+
+function doTime(){run('time','Beste Reisezeit für '+g('dest')+'? 1.Klima 2.Günstigste Zeit 3.Events 4.Hinweise 5.✅Empfehlung','btnTime','🗓️ Beste Reisezeit')}
+
+function doHotel(){run('hotel','Beste Hotels '+g('dest')+(g('region')?', '+g('region'):'')+' mind.'+g('stars')+'★. '+g('trav')+'Pers.'+(g('budget')?' max.'+g('budget')+'€':'')+'. 5-8 Hotels: Bewertungen,Preis,Highlights. 📊 👍Lob 👎Kritik 💬Zitat 🏆 Ranking 💡Tipps','btnHotel','🏨 Hotel-Trends')}
+
+function doCruise(){run('cruise','Kreuzfahrt-Experte: Beste Angebote. ROUTE:'+g('dest')+(g('region')?', '+g('region'):'')+' AB:'+apStr()+' DAUER:'+(g('crDur')==='any'?'egal':g('crDur'))+' KABINE:'+g('crCab')+' REEDEREI:'+(g('crLine')==='any'?'Alle':g('crLine'))+' VERPFLEGUNG:'+(g('crBoard')==='any'?'egal':g('crBoard'))+' REISENDE:'+g('trav')+(g('dep')?', ZEITRAUM:'+g('dep')+(g('ret')?' bis '+g('ret'):''):'')+(g('budget')?', BUDGET:max.'+g('budget')+'€/P.':'')+'. Suche kreuzfahrten.de,AIDA,MSC,Costa,TUI,Dreamlines. 🚢 TOP 5-8 ANGEBOTE 📊 PREIS-VERGLEICH 🗓️ BESTE ZEIT 🏆 Empfehlungen 💡 TIPPS','btnCruise','🚢 Kreuzfahrt finden')}
+
+function doNile(){run('nile','Nilkreuzfahrt-Experte: Beste Angebote. '+(g('dest')?'ZIEL:'+g('dest'):'Nilkreuzfahrt Ägypten')+' ABFLUG:'+apStr()+' DAUER:'+(g('crDur')==='any'?'4-7N':g('crDur'))+' KABINE:'+g('crCab')+' VERPFLEGUNG:'+(g('crBoard')==='any'?'VP/AI':g('crBoard'))+' REISENDE:'+g('trav')+(g('dep')?', ZEITRAUM:'+g('dep')+(g('ret')?' bis '+g('ret'):''):'')+(g('budget')?' BUDGET:max.'+g('budget')+'€/P.':'')+'. Suche FTI,DERTOUR,TUI,Lidl Reisen,Check24,Berge&Meer. 🏛️ TOP 5-8 ANGEBOTE 📊 BEWERTUNGS-TRENDS 🗓️ REISEZEIT(🟢/🟡/🔴) 🏆 Empfehlungen 💡 TIPPS','btnNile','🏛️ Nilkreuzfahrt')}
+</script>
+</body>
+</html>
