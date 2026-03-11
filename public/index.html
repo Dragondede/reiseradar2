@@ -337,61 +337,203 @@ function showProg(key){var ps=PHS[key]||[];document.getElementById('progArea').i
 function hideProg(){clearInterval(phIv);document.getElementById('progArea').innerHTML=''}
 
 // ═══ RENDER ═══
+var moreCount={};
 function render(){
   var a=document.getElementById('resArea'),keys=Object.keys(store);if(!keys.length){a.innerHTML='';return}
   if(!tab||!store[tab])tab=keys[keys.length-1];
   var h='<div style="animation:fadeIn .4s"><div class="tabs">';
   keys.forEach(function(k){h+='<button class="tab '+(tab===k?'on':'')+'" onclick="tab=\''+k+'\';render()">'+LBL[k]+'</button>'});
-  h+='</div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><h3 class="res-title" style="margin:0">'+LBL[tab]+' — '+(getDest()||'')+'</h3><button class="fav-btn" onclick="addFav(store[tab],LBL[tab]+\' — \'+(getDest()||\'\'))" title="Zu Favoriten">🤍</button></div><div class="res-card">';
-  if(tab==='table'||tab==='month')h+=buildTbl(store[tab]);
-  else h+='<div class="res-text">'+fmt(store[tab])+'</div>';
-  h+='</div></div>';a.innerHTML=h;a.scrollIntoView({behavior:'smooth',block:'start'});
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><h3 class="res-title" style="margin:0">'+LBL[tab]+' — '+(getDest()||'')+'</h3><button class="fav-btn" onclick="addFav(store[tab],LBL[tab]+\' — \'+(getDest()||\'\'))" title="Gesamtes Ergebnis speichern">🤍</button></div>';
+  // Parse and render as cards
+  if(tab==='table'||tab==='month')h+='<div class="res-card">'+buildTbl(store[tab])+'</div>';
+  else h+=buildCards(store[tab],tab);
+  // "Mehr laden" button
+  h+='<div style="text-align:center;margin-top:16px"><button onclick="loadMore()" style="padding:14px 32px;border-radius:12px;border:2px solid var(--green);background:rgba(76,175,80,0.06);color:var(--greenDk);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Mehr Ergebnisse laden</button></div>';
+  h+='</div>';a.innerHTML=h;a.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function fmt(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" style="color:var(--blue);word-break:break-all">$1</a>')}
+
+function loadMore(){
+  if(!tab||!store[tab])return;
+  moreCount[tab]=(moreCount[tab]||0)+1;
+  var dest=getDest(),reg=getRegion();
+  var extra='\n\nDas sind die bisherigen Ergebnisse (NICHT wiederholen):\n'+store[tab].substring(0,500)+'\n\nZeige mir jetzt 10 WEITERE/ANDERE Angebote die noch nicht gezeigt wurden. Andere Anbieter, andere Zeiträume, andere Hotels/Schiffe. Antworte im gleichen Format.';
+  var key=tab;
+  var prompt=lastPrompt[key]+extra;
+  lock(true);showProg(key);
+  ai(prompt).then(function(t){store[key]=store[key]+'\n\n───── Weitere Ergebnisse ─────\n\n'+t;tab=key}).catch(function(e){err(e.message)}).finally(function(){hideProg();lock(false);render()});
+}
+
+function buildCards(raw,key){
+  var lines=raw.split('\n');
+  var cards=[];var summary=[];var inTable=false;var headers=[];
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i].trim();
+    if(l.indexOf('TABELLE_START')>-1){inTable=true;continue}
+    if(l.indexOf('TABELLE_ENDE')>-1){inTable=false;continue}
+    if(l.indexOf('---')===0&&l.length<10)continue;
+    if(inTable){
+      if(l.indexOf('|')>-1){
+        var cells=l.split('|').map(function(c){return c.trim()}).filter(function(c){return c.length>0&&c.indexOf('---')===-1});
+        if(cells.length<2)continue;
+        if(!headers.length){headers=cells;continue}
+        cards.push(cells);
+      }
+    }else if(l.length>3){
+      summary.push(l);
+    }
+  }
+  
+  var h='';
+  // Stats bar
+  if(cards.length>0){
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 14px;background:#f8f8f8;border-radius:10px"><span style="font-size:13px;font-weight:600;color:var(--navy)">'+cards.length+' Angebote gefunden</span><span style="font-size:11px;color:#999">Sortiert nach Preis</span></div>';
+  }
+  
+  // Render each row as a professional card
+  cards.forEach(function(cells,idx){
+    var isBest=idx===0;
+    var favText=headers.map(function(h,j){return h+': '+(cells[j]||'')}).join(' | ');
+    h+='<div style="background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 2px 16px rgba(0,0,0,0.06);border:2px solid '+(isBest?'var(--green)':'#f0f0f0')+';position:relative;transition:border .2s">';
+    
+    // Best badge
+    if(isBest)h+='<div style="position:absolute;top:-1px;right:16px;background:var(--green);color:#fff;font-size:10px;font-weight:700;padding:4px 12px;border-radius:0 0 8px 8px">💰 BESTER PREIS</div>';
+    
+    // Card header with provider
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">';
+    h+='<div><span style="font-size:15px;font-weight:700;color:var(--navy)">'+(cells[0]||'')+'</span>';
+    if(cells[1])h+='<span style="font-size:11px;color:#999;margin-left:8px">'+cells[1]+'</span>';
+    h+='</div>';
+    // Price
+    var priceIdx=-1;for(var pi=0;pi<headers.length;pi++){if(headers[pi].toLowerCase().indexOf('preis')>-1){priceIdx=pi;break}}
+    if(priceIdx>-1&&cells[priceIdx]){
+      h+='<div style="text-align:right"><div style="font-size:20px;font-weight:800;color:'+(isBest?'var(--green)':'var(--red)')+'">'+cells[priceIdx].replace('>>>','').trim()+'</div><div style="font-size:10px;color:#999">pro Person</div></div>';
+    }
+    h+='</div>';
+    
+    // Details grid
+    h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">';
+    for(var j=2;j<cells.length;j++){
+      if(j===priceIdx)continue;
+      var val=cells[j];if(!val||val.length<2)continue;
+      var hdr=headers[j]||'';
+      // Skip link column for grid
+      if(hdr.toLowerCase().indexOf('link')>-1)continue;
+      var icon='📋';
+      if(hdr.toLowerCase().indexOf('route')>-1||hdr.toLowerCase().indexOf('hotel')>-1)icon='🏨';
+      if(hdr.toLowerCase().indexOf('stern')>-1||hdr.toLowerCase().indexOf('bewert')>-1)icon='⭐';
+      if(hdr.toLowerCase().indexOf('dauer')>-1||hdr.toLowerCase().indexOf('zeit')>-1)icon='📅';
+      if(hdr.toLowerCase().indexOf('flug')>-1||hdr.toLowerCase().indexOf('ab')>-1)icon='✈️';
+      if(hdr.toLowerCase().indexOf('kabine')>-1)icon='🛏️';
+      if(hdr.toLowerCase().indexOf('schiff')>-1)icon='🚢';
+      if(hdr.toLowerCase().indexOf('verpfl')>-1)icon='🍽️';
+      h+='<div style="background:#f8f8f8;border-radius:8px;padding:6px 10px;font-size:11px"><span style="color:#999;font-size:10px">'+icon+' '+esc(hdr)+'</span><br><span style="font-weight:600;color:#333">'+esc(val)+'</span></div>';
+    }
+    h+='</div>';
+    
+    // Action buttons
+    h+='<div style="display:flex;gap:8px;align-items:center">';
+    // Find link
+    var linkIdx=-1;for(var li=0;li<headers.length;li++){if(headers[li].toLowerCase().indexOf('link')>-1){linkIdx=li;break}}
+    var link=linkIdx>-1?cells[linkIdx]:'';
+    // Clean link - extract URL if wrapped in text
+    var urlMatch=link.match(/(https?:\/\/[^\s\]\)]+)/);
+    if(urlMatch)link=urlMatch[1];
+    else if(link&&link.indexOf('http')===-1){
+      // Try to make a search URL from provider name
+      var provider=(cells[0]||'').toLowerCase().replace(/\s/g,'');
+      var searchUrls={'check24':'https://urlaub.check24.de','holidaycheck':'https://www.holidaycheck.de','lastminute':'https://www.lastminute.de','skyscanner':'https://www.skyscanner.de','kayak':'https://www.kayak.de','fti':'https://www.fti.de','dertour':'https://www.dertour.de','tui':'https://www.tui.com/pauschalreisen/','aida':'https://www.aida.de','msc':'https://www.msccruises.de','costa':'https://www.costacruises.de','dreamlines':'https://www.dreamlines.de','gebeco':'https://www.gebeco.de','studiosus':'https://www.studiosus.com','phoenix':'https://www.phoenixreisen.com','ab-in-den-urlaub':'https://www.ab-in-den-urlaub.de','sonnenklar':'https://www.sonnenklar.tv','5vorflug':'https://www.5vorflug.de','berge&meer':'https://www.berge-meer.de'};
+      for(var pk in searchUrls){if(provider.indexOf(pk)>-1){link=searchUrls[pk];break}}
+    }
+    
+    if(link&&link.indexOf('http')===0){
+      h+='<a href="'+esc(link)+'" target="_blank" rel="noopener" style="flex:1;display:block;text-align:center;padding:12px;border-radius:10px;background:linear-gradient(135deg,#e65100,#ff8f00);color:#fff;font-size:13px;font-weight:700;text-decoration:none;font-family:inherit;box-shadow:0 2px 8px rgba(230,81,0,0.25)">Angebot prüfen →</a>';
+    }
+    h+='<button onclick="addFav(\''+esc(favText.replace(/'/g,"\\'")+' | '+link).replace(/\n/g,' ')+'\',\''+esc(LBL[tab]||'')+'\')" style="padding:10px 14px;border-radius:10px;border:2px solid #e0e0e0;background:#fafafa;cursor:pointer;font-size:16px" title="Zu Favoriten">🤍</button>';
+    h+='</div></div>';
+  });
+  
+  // Summary text
+  if(summary.length>0){
+    var sumText=summary.join('\n');
+    h+='<div class="res-card" style="margin-top:12px"><div class="res-text">'+fmt(sumText)+'</div></div>';
+  }
+  
+  // If no cards parsed, show raw text
+  if(cards.length===0){
+    h+='<div class="res-card"><div class="res-text">'+fmt(raw)+'</div></div>';
+  }
+  return h;
+}
+
+function fmt(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(https?:\/\/[^\s<\]]+)/g,'<a href="$1" target="_blank" style="color:var(--blue);word-break:break-all">$1</a>')}
 
 // ═══ TABLE ═══
 function buildTbl(raw){
   var td='',sum='',ts=raw.indexOf('TABELLE_START'),te=raw.indexOf('TABELLE_ENDE');
   if(ts>-1&&te>-1){td=raw.substring(ts+13,te).trim();sum=raw.substring(te+12).trim()}
   else{var pl=raw.split('\n').filter(function(l){return l.indexOf('|')>-1&&l.length>5});if(pl.length>1){td=pl.join('\n');sum=raw.substring(raw.lastIndexOf(pl[pl.length-1])+pl[pl.length-1].length).trim()}else return'<div class="res-text">'+fmt(raw)+'</div>'}
-  var rows=td.split('\n').map(function(r){return r.trim()}).filter(function(r){return r.indexOf('|')>-1});if(rows.length<2)return'<div class="res-text">'+fmt(raw)+'</div>';
-  var hd=rows[0].split('|').map(function(c){return c.trim()});var all=[];
-  var dr=rows.slice(1).map(function(r){var c=r.split('|').map(function(x){return x.trim()});c.forEach(function(x,j){if(j>0&&j<c.length-1){var p=pp(x);if(p>0)all.push(p)}});return c});
+  var rows=td.split('\n').map(function(r){return r.trim()}).filter(function(r){return r.indexOf('|')>-1&&r.indexOf('---')===-1});if(rows.length<2)return'<div class="res-text">'+fmt(raw)+'</div>';
+  var hd=rows[0].split('|').map(function(c){return c.trim()}).filter(function(c){return c.length>0});var all=[];
+  var dr=rows.slice(1).map(function(r){var c=r.split('|').map(function(x){return x.trim()}).filter(function(x){return x.length>0});c.forEach(function(x,j){if(j>0&&j<c.length-1){var p=pp(x);if(p>0)all.push(p)}});return c});
   all.sort(function(a,b){return a-b});var best=all.length?all[0]:0;
   var h='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="ptbl"><thead><tr>';
   hd.forEach(function(c){h+='<th>'+esc(c)+'</th>'});h+='</tr></thead><tbody>';
   dr.forEach(function(cells){var isBest=false;cells.forEach(function(c,j){if(j>0&&j<cells.length-1&&pp(c)>0&&pp(c)<=best*1.05)isBest=true});h+='<tr class="'+(isBest?'p-best':'')+'">';cells.forEach(function(c,j){h+='<td>'+esc(c.replace('>>>','▶ '))+'</td>'});h+='</tr>'});
   h+='</tbody></table></div>';
-  h+='<div class="legend"><span><span class="ldot" style="background:var(--green)"></span>Günstigster</span><span style="color:#bbb">Preise pro Person</span></div>';
+  h+='<div class="legend"><span><span class="ldot" style="background:var(--green)"></span>Günstigster</span></div>';
   if(sum)h+='<div style="margin-top:12px;padding-top:10px;border-top:1px solid #eee"><div class="res-text">'+fmt(sum)+'</div></div>';
   return h;
 }
 function pp(s){var m=s.replace(/[^\d]/g,'');return m?parseInt(m):0}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
 // ═══ API ═══
 function ai(prompt){return fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})}).then(function(r){return r.text()}).then(function(txt){var d;try{d=JSON.parse(txt)}catch(e){throw new Error('Ungültige Antwort')}if(d.error)throw new Error(d.error);return d.text||'Keine Ergebnisse.'})}
 
+var lastPrompt={};
 function run(key,prompt,btnId,label){
   var dest=getDest();if(!dest&&key!=='nile'){err('Bitte Reiseziel wählen.');return}
+  lastPrompt[key]=prompt;
   lock(true);document.getElementById(btnId).textContent='⏳ Läuft…';showProg(key);
   ai(prompt).then(function(t){store[key]=t;tab=key}).catch(function(e){err(e.message)}).finally(function(){hideProg();lock(false);document.getElementById(btnId).textContent=label;render()});
 }
 
-// ═══ SEARCH ACTIONS ═══
-function doSearch(){var d=getDest(),r=getRegion(),dur=g('dur');run('search','Reiseexperte: Günstigste Angebote nach '+d+(r?', '+r:'')+'. ABFLUGHÄFEN: '+apStr()+'. '+(g('dep')?'HINFLUG: '+g('dep')+', RÜCKFLUG: '+(g('ret')||'offen')+'. ':'')+' DAUER: '+dur+'T. REISENDE: '+g('trav')+', TYP: '+tLbl()+'. '+(g('budget')?'BUDGET: max.'+g('budget')+'€/P. ':'')+(type!=='flight'?'MIN STERNE: '+g('stars')+'. ':'')+'\nSuche Skyscanner,Google Flights,Kayak,Check24,HolidayCheck,lastminute.de.\nAntworte auf Deutsch als TABELLE:\nTABELLE_START\nAnbieter|Flughafen|'+(type!=='flight'?'Hotel|Sterne|':'')+'Preis/P.|Zeitraum|Link\n...\nTABELLE_ENDE\nSortiere nach Preis. Günstigsten mit >>> markieren. Echte Buchungslinks.\nDanach: 🏆 TOP 3 💡 Spar-Tipps','btnSearch','🚀 Günstigste Angebote finden')}
+// ═══ SEARCH PROMPTS (improved with direct links) ═══
+function doSearch(){var d=getDest(),r=getRegion(),dur=g('dur');
+run('search','Du bist ein Reiseexperte. Suche die GÜNSTIGSTEN Angebote und antworte NUR AUF DEUTSCH.\n\n'+
+'ZIEL: '+d+(r?', '+r:'')+'\nABFLUGHÄFEN: '+apStr()+'\n'+(g('dep')?'HINFLUG: '+g('dep')+', RÜCKFLUG: '+(g('ret')||g('dep')+' + '+dur+' Tage')+'\n':'FLEXIBEL\n')+
+'DAUER: '+dur+' Tage, REISENDE: '+g('trav')+', TYP: '+tLbl()+'\n'+
+(g('budget')?'BUDGET: max. '+g('budget')+'€ pro Person\n':'')+
+(type!=='flight'?'MIN HOTEL: '+g('stars')+' Sterne\n':'')+
+'\nSuche auf diesen Portalen und gib die ECHTEN DIREKTEN Buchungslinks an:\n- https://urlaub.check24.de\n- https://www.holidaycheck.de/reisen\n- https://www.lastminute.de\n- https://www.ab-in-den-urlaub.de\n- https://www.skyscanner.de\n- https://www.kayak.de\n- https://www.tui.com/pauschalreisen/\n- https://www.5vorflug.de\n\nAntworte mit MINDESTENS 10-15 Angeboten in diesem EXAKTEN Format:\n\nTABELLE_START\nAnbieter|Ab Flughafen|'+(type!=='flight'?'Hotel|Sterne|':'')+'Preis/P.|Reisezeitraum|Direkter Buchungslink\n'+
+'z.B. Check24|DUS|'+(type!=='flight'?'Sunrise Royal Makadi|⭐⭐⭐⭐⭐|':'')+'389€|20.03-27.03.2026|https://urlaub.check24.de\n'+
+'...\nTABELLE_ENDE\n\nSortiere nach Preis (günstigster zuerst). Markiere günstigsten mit >>>.\n\nDanach:\n🏆 TOP 3 Empfehlungen (mit Begründung)\n💡 3 konkrete Spar-Tipps\n📅 Bester Buchungszeitpunkt','btnSearch','🚀 Günstigste Angebote finden')}
 
-function doTable(){var heads=getAP().map(function(a){return a.n+' ('+a.c+')'});run('table','Preistabelle für '+getDest()+(getRegion()?', '+getRegion():'')+'. ABFLUGHÄFEN: '+heads.join(', ')+'. TYP: '+tLbl()+', REISENDE: '+g('trav')+', DAUER: '+g('dur')+'T.\nAntworte EXAKT:\nTABELLE_START\nMonat|'+heads.join('|')+'|Bewertung\n'+MONTHS.map(function(m){return m+'|'+heads.map(function(){return'XXX€'}).join('|')+'|🟢/🟡/🔴'}).join('\n')+'\nTABELLE_ENDE\nGünstigsten mit >>>. Danach: 🏆 Günstigster 🥈 Zweit ⚠️ Teuerster 💡 Spartipp mit Link','btnTable','📊 Jahres-Tabelle')}
+function doTable(){var heads=getAP().map(function(a){return a.n+' ('+a.c+')'});
+run('table','Preistabelle für '+getDest()+(getRegion()?', '+getRegion():'')+' auf Deutsch.\nABFLUGHÄFEN: '+heads.join(', ')+'\nTYP: '+tLbl()+', REISENDE: '+g('trav')+', DAUER: '+g('dur')+' Tage\n'+
+'\nTABELLE_START\nMonat|'+heads.join('|')+'|Bewertung\n'+MONTHS.map(function(m){return m+'|'+heads.map(function(){return'XXX€'}).join('|')+'|🟢/🟡/🔴'}).join('\n')+
+'\nTABELLE_ENDE\n\nGünstigsten mit >>> markieren.\n🏆 Günstigster Monat+Flughafen+Preis+Link\n🥈 Zweitgünstigster\n⚠️ Teuerster\n💡 Spartipp\n📅 Buchungszeit\n🔗 Direkter Link zum günstigsten Angebot','btnTable','📊 Jahres-Tabelle')}
 
-function doMonth(){var months=getSelMonths();if(!months&&!g('dep')){err('Bitte Monat(e) wählen oder Hinflugdatum eingeben.');return}run('month','Monatspreise für '+getDest()+(getRegion()?', '+getRegion():'')+'. ABFLUGHÄFEN: '+apStr()+'. MONATE: '+(months||'Alle')+'. DAUER: '+g('dur')+'T. REISENDE: '+g('trav')+', TYP: '+tLbl()+'.\nTABELLE_START\nZeitraum|Günstigster Flughafen|'+(type!=='flight'?'Hotel|':'')+'Preis/P.|Anbieter|Link\n...\nTABELLE_ENDE\nJede Woche im Monat. Günstigsten mit >>>. Echte Links.\n📊 Welcher Monat/Woche günstigster? Wochentag? Frühbucher?','btnMonth','📆 Monats-Preise')}
+function doMonth(){var months=getSelMonths();if(!months&&!g('dep')){err('Bitte Monat(e) wählen.');return}
+run('month','Monatspreise für '+getDest()+(getRegion()?', '+getRegion():'')+' auf Deutsch.\nABFLUGHÄFEN: '+apStr()+'\nMONATE: '+(months||'Alle')+'\nDAUER: '+g('dur')+'T, REISENDE: '+g('trav')+', TYP: '+tLbl()+'\n'+
+'\nFür JEDE Woche im Monat, zeige 2-3 Angebote:\nTABELLE_START\nZeitraum|Ab Flughafen|'+(type!=='flight'?'Hotel|':'')+'Preis/P.|Anbieter|Direkter Buchungslink\n...\nTABELLE_ENDE\n\nMindestens 12-15 Einträge. Echte Links zu Check24, HolidayCheck, lastminute.de etc.\n📊 Günstigste Woche + Wochentag\n🏆 Empfehlung + Link','btnMonth','📆 Monats-Preise')}
 
-function doTime(){run('time','Beste Reisezeit für '+getDest()+'? Auf Deutsch: 1.Klima(Temperaturen/Monat) 2.Günstigste Zeit(Preise %) 3.Events 4.Hinweise(Visum) 5.✅Empfehlung mit Link','btnTime','🗓️ Beste Reisezeit')}
+function doTime(){run('time','Beste Reisezeit für '+getDest()+'? Auf Deutsch:\n1. 🌡️ Klima & Wetter (Temperaturen je Monat, Regentage)\n2. 💰 Günstigste Reisezeit (Nebensaison Preise vs Hochsaison in %)\n3. 🎉 Events & Feiertage\n4. ⚠️ Hinweise (Visum, Gesundheit, Sicherheit)\n5. ✅ Empfehlung: Perfekter Zeitraum\n6. 🔗 Direkte Links: Check24, HolidayCheck für diesen Zeitraum','btnTime','🗓️ Beste Reisezeit')}
 
-function doHotel(){run('hotel','Beste Hotels '+getDest()+(getRegion()?', '+getRegion():'')+' mind.'+g('stars')+'★ '+g('trav')+'Pers.'+(g('budget')?' max.'+g('budget')+'€':'')+'.\nTABELLE_START\nHotel|Sterne|Lage|Bewertung|Preis ab|Highlights|Link\n...\nTABELLE_ENDE\n5-8 Hotels. Echte Links. 📊 👍Lob 👎Kritik 🏆 Ranking 💡Tipps','btnHotel','🏨 Hotel-Trends')}
+function doHotel(){run('hotel','Hotel-Experte: Beste Hotels in '+getDest()+(getRegion()?', '+getRegion():'')+' mind. '+g('stars')+' Sterne. '+g('trav')+' Pers.'+(g('budget')?' max. '+g('budget')+'€/P.':'')+'\nAuf Deutsch.\n\nTABELLE_START\nHotel|Sterne|Lage|Booking.com|HolidayCheck|Preis ab/Nacht|Highlights|Direkter Link\n...\nTABELLE_ENDE\n\nMindestens 8-10 Hotels mit ECHTEN Links zu:\n- https://www.booking.com/hotel/...\n- https://www.holidaycheck.de/hi/...\n- https://www.tripadvisor.de/...\n\n📊 👍 Top 3 gelobte Aspekte 👎 Top 3 Kritik\n🏆 Ranking: Gesamtpaket, Strand, Familie, Luxus, Geheimtipp\n💡 Buchungstipps','btnHotel','🏨 Hotel-Trends')}
 
-function doCruise(){run('cruise','Kreuzfahrt-Experte: '+getDest()+(getRegion()?', '+getRegion():'')+' AB:'+apStr()+' DAUER:'+(g('crDur')==='any'?'egal':g('crDur'))+' KABINE:'+g('crCab')+' REEDEREI:'+(g('crLine')==='any'?'Alle':g('crLine'))+' VERPFLEGUNG:'+(g('crBoard')==='any'?'egal':g('crBoard'))+' '+g('trav')+'Pers.\nTABELLE_START\nReederei|Schiff|Route|Dauer|Kabine|Preis/P.|Abfahrt|Link\n...\nTABELLE_ENDE\nSortiert. 📊 VERGLEICH 🗓️ ZEIT 🏆 Empfehlungen 💡 TIPPS','btnCruise','🚢 Kreuzfahrt finden')}
+function doCruise(){run('cruise','Kreuzfahrt-Experte auf Deutsch. Suche UMFANGREICHE Angebote.\n\n'+
+'ROUTE: '+getDest()+(getRegion()?', '+getRegion():'')+'\nAB: '+apStr()+'\nDAUER: '+(g('crDur')==='any'?'alle':g('crDur'))+'\nKABINE: '+g('crCab')+'\nREEDEREI: '+(g('crLine')==='any'?'Alle':g('crLine'))+'\nVERPFLEGUNG: '+(g('crBoard')==='any'?'egal':g('crBoard'))+'\nREISENDE: '+g('trav')+
+(g('dep')?'\nZEITRAUM: '+g('dep')+(g('ret')?' bis '+g('ret'):''):'')+
+(g('budget')?'\nBUDGET: max. '+g('budget')+'€/P.':'')+
+'\n\nSuche auf diesen Portalen:\n- https://www.kreuzfahrten.de\n- https://www.dreamlines.de\n- https://www.e-hoi.de\n- https://www.aida.de\n- https://www.meinschiff.com\n- https://www.msccruises.de\n- https://www.costacruises.de\n\nTABELLE_START\nReederei|Schiff|Route (alle Stopps)|Dauer|Kabine (Innen/Außen/Balkon/Suite Preise)|Preis ab/P.|Nächster Termin|Direkter Buchungslink\n...\nTABELLE_ENDE\n\nMindestens 10-15 Angebote! Verschiedene Reedereien, verschiedene Termine.\nFür JEDES Angebot die 4 Kabinenpreise angeben (Innen ab X€, Außen ab X€, Balkon ab X€, Suite ab X€).\n\n📊 PREIS-VERGLEICH nach Reederei\n🗓️ GÜNSTIGSTE Abfahrtstermine\n🏆 💰 Schnäppchen ⭐ Preis-Leistung 👨‍👩‍👧‍👦 Familie 💎 Luxus\n💡 BUCHUNGSTIPPS: Frühbucher vs Last-Minute, Bordguthaben','btnCruise','🚢 Kreuzfahrt finden')}
 
-function doNile(){run('nile','Nilkreuzfahrt-Experte: '+(getDest()||'Ägypten')+' ABFLUG:'+apStr()+' DAUER:'+(g('crDur')==='any'?'4-7N':g('crDur'))+' KABINE:'+g('crCab')+' '+g('trav')+'Pers.'+(g('budget')?' max.'+g('budget')+'€/P.':'')+'\nTABELLE_START\nVeranstalter|Schiff|Route|Dauer|Flug inkl.|Preis/P.|Bewertung|Link\n...\nTABELLE_ENDE\n📊 TRENDS 🗓️ REISEZEIT(🟢🟡🔴) 🏆 Empfehlung 💡 Visum,Tipps','btnNile','🏛️ Nilkreuzfahrt')}
+function doNile(){run('nile','Nilkreuzfahrt-Experte auf Deutsch. Suche UMFANGREICHE Angebote.\n\n'+
+(getDest()?'ZIEL: '+getDest():'Nilkreuzfahrt Ägypten')+'\nABFLUG: '+apStr()+'\nDAUER: '+(g('crDur')==='any'?'4-7 Nächte auf dem Nil (+Aufenthalt)':g('crDur'))+'\nKABINE: '+g('crCab')+'\nREISENDE: '+g('trav')+
+(g('dep')?'\nZEITRAUM: '+g('dep')+(g('ret')?' bis '+g('ret'):''):'\nFLEXIBEL — zeige verschiedene Termine!')+
+(g('budget')?'\nBUDGET: max. '+g('budget')+'€/P. inkl. Flug':'')+
+'\n\nSuche auf diesen Portalen und gib ECHTE DIREKTE Links an:\n- https://www.fti.de/nilkreuzfahrt\n- https://www.dertour.de\n- https://www.tui.com\n- https://www.lidl-reisen.de\n- https://www.neckermann-reisen.de\n- https://urlaub.check24.de\n- https://www.ab-in-den-urlaub.de\n- https://www.berge-meer.de\n- https://www.sonnenklar.tv\n- https://www.5vorflug.de\n\nTABELLE_START\nVeranstalter|Schiff (⭐⭐⭐⭐/⭐⭐⭐⭐⭐)|Route (alle Stopps)|Dauer gesamt|Flug ab|Flug inkl.?|Kabine|Verpflegung|Ausflüge inkl.?|Preis/P. inkl. Flug|Gästebewertung|Direkter Buchungslink\n...\nTABELLE_ENDE\n\nMindestens 10-12 verschiedene Angebote! Verschiedene Veranstalter, verschiedene Schiffe, verschiedene Termine.\n\n📊 BEWERTUNGS-TRENDS der Top-Schiffe:\n👍 Top 3 was Gäste loben (mit %)\n👎 Top 3 häufigste Kritik (mit %)\n💬 Typisches Gäste-Zitat\n\n🗓️ BESTE & GÜNSTIGSTE REISEZEIT:\n🟢 Günstig: Monate + ca. Preis\n🟡 Mittel: Monate + ca. Preis\n🔴 Teuer: Monate + ca. Preis\n✅ Perfekter Zeitraum (Wetter + Preis)\n⚠️ Meiden: Monate (Hitze >45°C)\n\n🏆 EMPFEHLUNG:\n1. 💰 Günstigstes Angebot + Link\n2. ⭐ Bestes Preis-Leistungs-Verhältnis + Link\n3. 💎 Bestes Luxus-Schiff + Link\n4. 🏖️ Beste Kombi Nil + Badeurlaub (Hurghada/Marsa Alam) + Link\n\n💡 TIPPS: Visum, Trinkgeld-Kultur, Badeverlängerung, wann vorher buchen?','btnNile','🏛️ Nilkreuzfahrt')}
 </script>
 </body>
 </html>
