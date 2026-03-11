@@ -115,6 +115,25 @@ option{background:#fff;color:#333}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(212,146,10,0.3)}50%{box-shadow:0 0 0 6px rgba(212,146,10,0)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes fadeOverlay{from{opacity:0}to{opacity:1}}
+/* Flight mode tabs */
+.fmode-btn{flex:1;padding:9px 4px;border-radius:8px;font-size:11px;font-weight:500;border:none;cursor:pointer;font-family:inherit;background:transparent;color:#888;transition:all .2s}
+.fmode-btn.active{background:#1976d2;color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(25,118,210,0.3)}
+/* Multi-city */
+.multi-leg{margin-bottom:8px;padding:10px;background:#f8f8f8;border-radius:10px}
+.multi-leg .lbl{margin-bottom:6px}
+/* Overlay */
+.overlay-bg{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;animation:fadeOverlay .3s;display:none}
+.overlay-bg.show{display:block}
+.overlay-panel{position:fixed;bottom:0;left:0;right:0;top:60px;background:#f4f1ec;z-index:1001;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,0.2);overflow-y:auto;-webkit-overflow-scrolling:touch;animation:slideUp .35s ease-out;display:none;padding-bottom:calc(20px + var(--safe-bot))}
+.overlay-panel.show{display:block}
+.overlay-header{position:sticky;top:0;background:#fff;padding:14px 16px;border-radius:20px 20px 0 0;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.overlay-header h3{font-size:15px;font-weight:700;color:var(--navy);margin:0}
+.overlay-close{background:none;border:none;font-size:22px;cursor:pointer;padding:4px 8px;color:#999;border-radius:8px}
+.overlay-close:hover{background:#f0f0f0;color:#333}
+.overlay-body{padding:14px 16px}
+.overlay-handle{width:40px;height:4px;border-radius:2px;background:#ddd;margin:8px auto 0}
 </style>
 </head>
 <body>
@@ -135,10 +154,41 @@ option{background:#fff;color:#333}
       <div><div class="lbl">✈️ Zielflughafen / Region</div><select class="fi" id="region"><option value="">Alle</option></select></div>
     </div>
     <div id="regionChips"></div>
-    <div class="g3">
-      <div><div class="lbl">📅 Hinflug</div><input type="date" class="fi" id="dep"></div>
-      <div><div class="lbl">📅 Rückflug</div><input type="date" class="fi" id="ret"></div>
-      <div><div class="lbl">⏱️ Dauer</div><select class="fi" id="dur"><option value="7" selected>7 Tage</option><option value="10">10 Tage</option><option value="14">14 Tage</option><option value="21">21 Tage</option></select></div>
+    <!-- Flight Mode Tabs -->
+    <div style="display:flex;gap:0;margin-bottom:12px;background:#f0f0f0;border-radius:10px;padding:3px">
+      <button class="fmode-btn active" onclick="setFlightMode(this,'roundtrip')">↔️ Hin- und Rückflug</button>
+      <button class="fmode-btn" onclick="setFlightMode(this,'oneway')">→ Hinflug</button>
+      <button class="fmode-btn" onclick="setFlightMode(this,'multi')">🔀 Mehrere Städte</button>
+    </div>
+    <!-- Standard dates (roundtrip/oneway) -->
+    <div id="datesStandard">
+      <div class="g3">
+        <div><div class="lbl">📅 Hinflug</div><input type="date" class="fi" id="dep"></div>
+        <div id="retWrap"><div class="lbl" id="retLabel">📅 Rückflug</div><input type="date" class="fi" id="ret"></div>
+        <div><div class="lbl">⏱️ Dauer</div><select class="fi" id="dur"><option value="7" selected>7 Tage</option><option value="10">10 Tage</option><option value="14">14 Tage</option><option value="21">21 Tage</option></select></div>
+      </div>
+    </div>
+    <!-- Multi-city legs -->
+    <div id="datesMulti" style="display:none">
+      <div id="multiLegs">
+        <div class="multi-leg">
+          <div class="lbl">✈️ Flug 1</div>
+          <div class="g3">
+            <div><input class="fi" placeholder="Von (z.B. DUS)" value="Düsseldorf"></div>
+            <div><input class="fi" placeholder="Nach (z.B. Kairo)"></div>
+            <div><input type="date" class="fi"></div>
+          </div>
+        </div>
+        <div class="multi-leg">
+          <div class="lbl">✈️ Flug 2</div>
+          <div class="g3">
+            <div><input class="fi" placeholder="Von"></div>
+            <div><input class="fi" placeholder="Nach"></div>
+            <div><input type="date" class="fi"></div>
+          </div>
+        </div>
+      </div>
+      <button onclick="addLeg()" style="margin-bottom:12px;padding:8px 16px;border-radius:8px;border:2px dashed #ccc;background:transparent;color:#888;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;width:100%">+ Weiteren Flug hinzufügen</button>
     </div>
     <div class="lbl">📆 Oder: Monatsreise</div>
     <div class="month-grid" id="monthGrid"></div>
@@ -182,8 +232,27 @@ option{background:#fff;color:#333}
   </div>
 
   <div id="progArea"></div>
-  <div id="resArea" style="margin-top:14px"></div>
   <div class="footer"><p>ReiseRadar — KI-gestützte Reisesuche mit Claude AI<br>Preise variieren · Buchung direkt beim Anbieter</p></div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="overlay-bg" id="overlayBg" onclick="closeOverlay()"></div>
+<div class="overlay-panel" id="overlayPanel">
+  <div class="overlay-handle"></div>
+  <div class="overlay-header">
+    <h3 id="overlayTitle">Ergebnisse</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="fav-btn" id="overlayFavBtn" onclick="addFav(store[tab],LBL[tab]+' — '+(getDest()||''))" title="Alles speichern">🤍</button>
+      <button class="overlay-close" onclick="closeOverlay()">✕</button>
+    </div>
+  </div>
+  <div class="overlay-body">
+    <div class="tabs" id="overlayTabs"></div>
+    <div id="overlayContent"></div>
+    <div id="overlayMore" style="text-align:center;margin-top:16px;display:none">
+      <button onclick="loadMore()" style="padding:14px 32px;border-radius:12px;border:2px solid var(--green);background:rgba(76,175,80,0.06);color:var(--greenDk);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Mehr Ergebnisse laden</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -267,7 +336,48 @@ var APS=[{c:'DUS',n:'Düsseldorf',d:1},{c:'CGN',n:'Köln/Bonn',d:1},{c:'FRA',n:'
 var LBL={search:'🔎 Angebote',table:'📊 Preistabelle',month:'📆 Monatspreise',time:'🗓️ Reisezeit',hotel:'🏨 Hotels',cruise:'🚢 Kreuzfahrten',nile:'🏛️ Nilkreuzfahrt',favs:'❤️ Favoriten'};
 var PHS={search:['Durchsuche Portale…','Vergleiche Preise…','Erstelle Ranking…'],table:['Recherchiere…','Vergleiche…','Erstelle Tabelle…'],month:['Analysiere Monate…','Vergleiche Wochen…','Erstelle Übersicht…'],time:['Recherchiere Klima…','Prüfe Saisons…','Empfehlung…'],hotel:['Durchsuche Portale…','Bewertungen…','Ranking…'],cruise:['Suche Kreuzfahrten…','Vergleiche…','Bewertungen…'],nile:['Suche Nilkreuzfahrten…','Vergleiche…','Preise…']};
 var BTNS=['btnSearch','btnTable','btnMonth','btnTime','btnHotel','btnCruise','btnNile'];
-var type='flight',store={},tab='',phIv=null,selM=[];
+var type='flight',store={},tab='',phIv=null,selM=[],flightMode='roundtrip';
+
+// ═══ FLIGHT MODE ═══
+function setFlightMode(btn,mode){
+  document.querySelectorAll('.fmode-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  flightMode=mode;
+  document.getElementById('datesStandard').style.display=mode==='multi'?'none':'block';
+  document.getElementById('datesMulti').style.display=mode==='multi'?'block':'none';
+  document.getElementById('retWrap').style.display='block';
+  document.getElementById('retLabel').textContent=mode==='oneway'?'📅 Rückflug (optional)':'📅 Rückflug';
+}
+function addLeg(){
+  var legs=document.getElementById('multiLegs');
+  var n=legs.children.length+1;
+  var d=document.createElement('div');d.className='multi-leg';
+  d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><div class="lbl">✈️ Flug '+n+'</div><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:14px">✕</button></div><div class="g3"><div><input class="fi" placeholder="Von"></div><div><input class="fi" placeholder="Nach"></div><div><input type="date" class="fi"></div></div>';
+  legs.appendChild(d);
+}
+function getMultiLegs(){
+  var legs=[];
+  document.querySelectorAll('.multi-leg').forEach(function(el){
+    var inputs=el.querySelectorAll('.fi');
+    if(inputs[0]&&inputs[1]&&inputs[0].value&&inputs[1].value){
+      legs.push({from:inputs[0].value,to:inputs[1].value,date:inputs[2]?inputs[2].value:''});
+    }
+  });
+  return legs;
+}
+
+// ═══ OVERLAY ═══
+function openOverlay(title){
+  document.getElementById('overlayTitle').textContent=title;
+  document.getElementById('overlayBg').classList.add('show');
+  document.getElementById('overlayPanel').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeOverlay(){
+  document.getElementById('overlayBg').classList.remove('show');
+  document.getElementById('overlayPanel').classList.remove('show');
+  document.body.style.overflow='';
+}
 
 // ═══ FAVORITES ═══
 function getFavs(){try{return JSON.parse(localStorage.getItem('rr_favs')||'[]')}catch(e){return[]}}
@@ -339,18 +449,29 @@ function hideProg(){clearInterval(phIv);document.getElementById('progArea').inne
 // ═══ RENDER ═══
 var moreCount={};
 function render(){
-  var a=document.getElementById('resArea'),keys=Object.keys(store);if(!keys.length){a.innerHTML='';return}
+  var keys=Object.keys(store);if(!keys.length)return;
   if(!tab||!store[tab])tab=keys[keys.length-1];
-  var h='<div style="animation:fadeIn .4s"><div class="tabs">';
-  keys.forEach(function(k){h+='<button class="tab '+(tab===k?'on':'')+'" onclick="tab=\''+k+'\';render()">'+LBL[k]+'</button>'});
-  h+='</div>';
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><h3 class="res-title" style="margin:0">'+LBL[tab]+' — '+(getDest()||'')+'</h3><button class="fav-btn" onclick="addFav(store[tab],LBL[tab]+\' — \'+(getDest()||\'\'))" title="Gesamtes Ergebnis speichern">🤍</button></div>';
-  // Parse and render as cards
-  if(tab==='table'||tab==='month')h+='<div class="res-card">'+buildTbl(store[tab])+'</div>';
-  else h+=buildCards(store[tab],tab);
-  // "Mehr laden" button
-  h+='<div style="text-align:center;margin-top:16px"><button onclick="loadMore()" style="padding:14px 32px;border-radius:12px;border:2px solid var(--green);background:rgba(76,175,80,0.06);color:var(--greenDk);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Mehr Ergebnisse laden</button></div>';
-  h+='</div>';a.innerHTML=h;a.scrollIntoView({behavior:'smooth',block:'start'});
+  
+  // Open overlay
+  openOverlay(LBL[tab]+' — '+(getDest()||''));
+  
+  // Tabs
+  var tabsEl=document.getElementById('overlayTabs');
+  tabsEl.innerHTML='';
+  keys.forEach(function(k){
+    var b=document.createElement('button');b.className='tab'+(tab===k?' on':'');b.textContent=LBL[k]||k;
+    b.onclick=function(){tab=k;render()};tabsEl.appendChild(b);
+  });
+  
+  // Content
+  var content=document.getElementById('overlayContent');
+  var h='';
+  if(tab==='table'||tab==='month')h='<div class="res-card">'+buildTbl(store[tab])+'</div>';
+  else h=buildCards(store[tab],tab);
+  content.innerHTML=h;
+  
+  // Show more button
+  document.getElementById('overlayMore').style.display='block';
 }
 
 function loadMore(){
@@ -466,7 +587,7 @@ function buildCards(raw,key){
   return h;
 }
 
-function fmt(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(https?:\/\/[^\s<\]]+)/g,'<a href="$1" target="_blank" style="color:var(--blue);word-break:break-all">$1</a>')}
+function fmt(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(https?:\/\/[^\s<\]\)]+)/g,'<a href="$1" target="_blank" style="color:var(--blue);word-break:break-all">$1</a>')}
 
 // ═══ TABLE ═══
 function buildTbl(raw){
@@ -501,14 +622,19 @@ function run(key,prompt,btnId,label){
 
 // ═══ SEARCH PROMPTS (improved with direct links) ═══
 function doSearch(){var d=getDest(),r=getRegion(),dur=g('dur');
-run('search','Du bist ein Reiseexperte. Suche die GÜNSTIGSTEN Angebote und antworte NUR AUF DEUTSCH.\n\n'+
-'ZIEL: '+d+(r?', '+r:'')+'\nABFLUGHÄFEN: '+apStr()+'\n'+(g('dep')?'HINFLUG: '+g('dep')+', RÜCKFLUG: '+(g('ret')||g('dep')+' + '+dur+' Tage')+'\n':'FLEXIBEL\n')+
-'DAUER: '+dur+' Tage, REISENDE: '+g('trav')+', TYP: '+tLbl()+'\n'+
+var flightInfo='';
+if(flightMode==='oneway')flightInfo='NUR HINFLUG (One-Way)\n'+(g('dep')?'DATUM: '+g('dep'):'FLEXIBEL')+'\n';
+else if(flightMode==='multi'){var legs=getMultiLegs();if(legs.length<2){err('Bitte mindestens 2 Flüge eingeben.');return}flightInfo='MULTI-CITY (Mehrere Städte):\n';legs.forEach(function(l,i){flightInfo+='Flug '+(i+1)+': '+l.from+' → '+l.to+(l.date?' am '+l.date:'')+'\n'});flightInfo+='\n'}
+else flightInfo='HIN- UND RÜCKFLUG\n'+(g('dep')?'HINFLUG: '+g('dep')+', RÜCKFLUG: '+(g('ret')||g('dep')+' + '+dur+' Tage'):'FLEXIBEL')+'\nDAUER: '+dur+' Tage\n';
+run('search','Du bist ein Reiseexperte mit Internetzugang. Suche im Web nach AKTUELLEN Flugangeboten und antworte NUR AUF DEUTSCH.\n\n'+
+'ZIEL: '+d+(r?', '+r:'')+'\nABFLUGHÄFEN: '+apStr()+'\n'+flightInfo+
+'REISENDE: '+g('trav')+', TYP: '+tLbl()+'\n'+
 (g('budget')?'BUDGET: max. '+g('budget')+'€ pro Person\n':'')+
 (type!=='flight'?'MIN HOTEL: '+g('stars')+' Sterne\n':'')+
-'\nSuche auf diesen Portalen und gib die ECHTEN DIREKTEN Buchungslinks an:\n- https://urlaub.check24.de\n- https://www.holidaycheck.de/reisen\n- https://www.lastminute.de\n- https://www.ab-in-den-urlaub.de\n- https://www.skyscanner.de\n- https://www.kayak.de\n- https://www.tui.com/pauschalreisen/\n- https://www.5vorflug.de\n\nAntworte mit MINDESTENS 10-15 Angeboten in diesem EXAKTEN Format:\n\nTABELLE_START\nAnbieter|Ab Flughafen|'+(type!=='flight'?'Hotel|Sterne|':'')+'Preis/P.|Reisezeitraum|Direkter Buchungslink\n'+
-'z.B. Check24|DUS|'+(type!=='flight'?'Sunrise Royal Makadi|⭐⭐⭐⭐⭐|':'')+'389€|20.03-27.03.2026|https://urlaub.check24.de\n'+
-'...\nTABELLE_ENDE\n\nSortiere nach Preis (günstigster zuerst). Markiere günstigsten mit >>>.\n\nDanach:\n🏆 TOP 3 Empfehlungen (mit Begründung)\n💡 3 konkrete Spar-Tipps\n📅 Bester Buchungszeitpunkt','btnSearch','🚀 Günstigste Angebote finden')}
+'\nSuche JETZT im Web auf Skyscanner, Google Flights, Kayak, Check24, HolidayCheck, lastminute.de, ab-in-den-urlaub.de, TUI, 5vorFlug.\n'+
+'Gib die ECHTEN DIREKTEN URLs an die du im Web findest — KEINE generischen Startseiten-Links!\n\n'+
+'Antworte mit MINDESTENS 10-15 Angeboten in diesem EXAKTEN Format:\n\nTABELLE_START\nAnbieter|Ab Flughafen|'+(type!=='flight'?'Hotel|Sterne|':'')+'Preis/P.|Reisezeitraum|Direkter Buchungslink\n'+
+'...\nTABELLE_ENDE\n\nSortiere nach Preis (günstigster zuerst). Markiere günstigsten mit >>>.\n\nDanach:\n🏆 TOP 3 Empfehlungen\n💡 3 konkrete Spar-Tipps\n📅 Bester Buchungszeitpunkt','btnSearch','🚀 Günstigste Angebote finden')}
 
 function doTable(){var heads=getAP().map(function(a){return a.n+' ('+a.c+')'});
 run('table','Preistabelle für '+getDest()+(getRegion()?', '+getRegion():'')+' auf Deutsch.\nABFLUGHÄFEN: '+heads.join(', ')+'\nTYP: '+tLbl()+', REISENDE: '+g('trav')+', DAUER: '+g('dur')+' Tage\n'+
